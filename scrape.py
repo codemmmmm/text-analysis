@@ -14,6 +14,7 @@ def create_connection(db_file):
     conn = None
     try:
         conn = sqlite3.connect(db_file)
+        conn.execute("PRAGMA foreign_keys = 1")
         return conn
     except Error as e:
         print(e)
@@ -21,13 +22,15 @@ def create_connection(db_file):
     return conn
 
 def insert_post(post):
+    # return post_id of inserted row
     sql = '''INSERT INTO posts(post_title, post_body, post_reddit_id)
-            VALUES(?,?,?)'''
+            VALUES(?,?,?) RETURNING post_id'''
     cur = conn.cursor()
     cur.execute(sql, post)
+    return cur.fetchone()[0]
 
 def insert_comment(reply):
-    sql = '''INSERT INTO replies(reply_body, reply_reddit_id, reply_parent)
+    sql = '''INSERT INTO replies(reply_body, reply_reddit_id, post_id)
             VALUES(?,?,?)'''
     cur = conn.cursor()
     cur.execute(sql, reply)
@@ -50,32 +53,30 @@ min_comments = 30 # includes whole comment forest
 max_comments = 150 # top level comments only
 
 try:
-    for post in reddit.subreddit('askscience').top(limit=9000):
+    for post in reddit.subreddit('history').top(limit=6000):
         print(post)
         #continue
         if not post.stickied and post.num_comments >= min_comments:
-            with conn: # either commits or rolls back
+            # either commits or rolls back
+            with conn: 
                 try:
-                    insert_post((post.title, post.selftext, post.id))
+                    post_id = insert_post((post.title, post.selftext, post.id))
                 except sqlite3.IntegrityError:
                     print("Post already exists in database.")
                     continue
             
-                post.comment_sort = 'top'     
-                # not sure which amount is good for limit
-                # None replaces all MoreComments instances with more comments
-                # 0 *removes* all the instances?
+                post.comment_sort = 'top'
                 post.comments.replace_more(limit=max_comments - 10) 
                 comments = post.comments
                 if len(comments) < min_comments: # len(comments) = number of top_level_comments
                     conn.rollback() # without this, post would get commited but not replies
                 else:
                     for top_level_comment in comments[:max_comments]:
-                        if top_level_comment.stickied: # because stickied comments tend to be the same stuff
+                        if top_level_comment.stickied or top_level_comment.body in ('[removed]', '[deleted]'): # because stickied comments tend to be the same bot comment etc.
                             continue                    
                         #if top_level_comment.score < 0:
                         #    break
-                        insert_comment((top_level_comment.body, top_level_comment.id, top_level_comment.link_id))
+                        insert_comment((top_level_comment.body, top_level_comment.id, post_id))
     conn.close()     
 except KeyboardInterrupt:
     conn.rollback()
