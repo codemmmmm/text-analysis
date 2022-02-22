@@ -34,6 +34,10 @@ conn.close()
 
 # replace everything except letters for counting frequency
 cleaned_text = re.sub('[^a-zA-Z]', ' ', text)
+# add whitespace after punctuation so it tokenizes sentences properly
+text = re.sub(r'([.?!])', r'\1 ', text)
+# replace linebreaks with . if there is no punctuation
+text = re.sub(r'[^.!?]\n', r'. ', text)
 
 # count word frequency
 stopwords = set(stopwords.words("english"))
