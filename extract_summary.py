@@ -29,15 +29,22 @@ cur = conn.cursor()
 text = ''
 # 1014 1041 41? 2166
 for row in cur.execute('''SELECT reply_body FROM replies WHERE post_id = 2166 ORDER BY reply_id'''):
-    text += row[0]
+    # get text with stripped whitespaces
+    #print([x.strip() for x in row[0].split('\n')])
+    lines = row[0].split('\n')
+    for line in lines:
+        text += line.strip() + '\n'
 conn.close()
 
 # replace everything except letters for counting frequency
 cleaned_text = re.sub('[^a-zA-Z]', ' ', text)
+
 # add whitespace after punctuation so it tokenizes sentences properly
-text = re.sub(r'([.?!])', r'\1 ', text)
-# replace linebreaks with . if there is no punctuation
-text = re.sub(r'[^.!?]\n', r'. ', text)
+# this is rarely or never needed because the data usually has space after period
+text = re.sub(r'([.?!])([a-zA-Z])', r'\1 \2', text) 
+
+# add period before linebreaks
+text = re.sub(r'([a-zA-Z"):/])\n', r'\1.\n', text) # or maybe ([^.!?\n])(\n)
 
 # count word frequency
 stopwords = set(stopwords.words("english"))
@@ -50,8 +57,7 @@ for word in word_tokenize(cleaned_text):
         else:
             frequencies[word] = 1
 #for key, value in sorted(frequencies.items(), key=lambda item: item[1]):
-#    print(key, value)       
-
+#    print(key, value)    
 max_frequency = max(frequencies.values())     
 for word in frequencies.keys():
     frequencies[word] = frequencies[word] / max_frequency
