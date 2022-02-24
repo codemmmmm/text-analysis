@@ -4,6 +4,7 @@ import sqlite3
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.stem import PorterStemmer
 import re
 
 def create_connection(db_file):
@@ -47,11 +48,13 @@ text = re.sub(r'([.?!])([a-zA-Z])', r'\1 \2', text)
 text = re.sub(r'([a-zA-Z"):/])\n', r'\1.\n', text) # or maybe ([^.!?\n])(\n)
 
 # count word frequency
+stemmer = PorterStemmer()
 stopwords = set(stopwords.words("english"))
 frequencies = dict()
 for word in word_tokenize(cleaned_text):
-    word = word.lower()
+    word = word.lower()    
     if not word in stopwords:
+        word = stemmer.stem(word, to_lowercase=False)
         if word in frequencies:
             frequencies[word] += 1
         else:
@@ -69,8 +72,10 @@ for word in frequencies.keys():
 sentences = sent_tokenize(text)
 sentence_scores = dict()
 for sentence in sentences:
-    for word, freq in frequencies.items():
-        if word in sentence.lower():
+    # turn sentence into list of stemmed words
+    stemmed_sentence = [stemmer.stem(token, to_lowercase=True) for token in word_tokenize(sentence)]    
+    for word, freq in frequencies.items():        
+        if word in stemmed_sentence: # e.g. 'guy' will not return true for ['guys', ], which should be fine because stemmed?
             if sentence in sentence_scores:
                 sentence_scores[sentence] += freq
             else:
@@ -79,6 +84,7 @@ for sentence in sentences:
 #    print(key, value) 
 
 n = 6
+# might throw an error if there happens to be the same sentence twice
 summary_sentences = [x[0] for x in sorted(sentence_scores.items(), reverse=True, key=lambda item: item[1])]
 summary = '\n============\n'.join(summary_sentences[:n])
 print(summary)
