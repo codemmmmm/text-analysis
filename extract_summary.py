@@ -23,29 +23,35 @@ def create_connection(db_file):
 
     return conn
 
+def prepare_text(text):
+    # add whitespace after punctuation so it tokenizes sentences properly
+    # this is rarely or never needed because the data usually has space after period
+    text = re.sub(r'([.?!])([a-zA-Z])', r'\1 \2', text) 
+
+    # add period before linebreaks
+    return re.sub(r'([a-zA-Z"):/])\n', r'\1.\n', text) # or maybe ([^.!?\n])(\n)
+
 database = 'db/data.db'
 conn = create_connection(database)
 cur = conn.cursor()
 
 text = ''
-# 1014 1041 41? 2166
-for row in cur.execute('''SELECT reply_body FROM replies WHERE post_id = 2166 ORDER BY reply_id'''):
+post = 2166 # 1014 1041 41? 2166
+for row in cur.execute('''SELECT reply_body FROM replies WHERE post_id = ? ORDER BY reply_id''', (post, )):
     # get text with stripped whitespaces
     #print([x.strip() for x in row[0].split('\n')])
     lines = row[0].split('\n')
     for line in lines:
         text += line.strip() + '\n'
+cur.execute('''SELECT post_title, post_body FROM posts WHERE post_id = ?''', (post, ))
+post_data = cur.fetchone()
+post_text = post_data[0] + '\n' + post_data[1]
 conn.close()
 
 # replace everything except letters for counting frequency
 cleaned_text = re.sub('[^a-zA-Z]', ' ', text)
 
-# add whitespace after punctuation so it tokenizes sentences properly
-# this is rarely or never needed because the data usually has space after period
-text = re.sub(r'([.?!])([a-zA-Z])', r'\1 \2', text) 
-
-# add period before linebreaks
-text = re.sub(r'([a-zA-Z"):/])\n', r'\1.\n', text) # or maybe ([^.!?\n])(\n)
+text = prepare_text(text)
 
 # count word frequency
 stemmer = PorterStemmer()
