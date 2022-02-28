@@ -31,6 +31,17 @@ def prepare_text(text):
     # add period before linebreaks
     return re.sub(r'([a-zA-Z"):/])\n', r'\1.\n', text) # or maybe ([^.!?\n])(\n)
 
+def count_words(sentence):
+    # all words except stopwords
+    sentence = re.sub('[^a-zA-Z]', ' ', sentence)
+    sentence_list = sentence.strip()
+    stopword_count = 0
+    for word in sentence_list:
+        if word.lower() in stopwords:
+            stopword_count += 1
+
+    return len(sentence_list) - stopword_count
+
 database = 'db/data.db'
 conn = create_connection(database)
 cur = conn.cursor()
@@ -52,10 +63,10 @@ conn.close()
 cleaned_text = re.sub('[^a-zA-Z]', ' ', text)
 
 text = prepare_text(text)
-
-# count word frequency
 stemmer = PorterStemmer()
 stopwords = set(stopwords.words("english"))
+
+# count word frequency
 frequencies = dict()
 for word in word_tokenize(cleaned_text):
     word = word.lower()    
@@ -80,19 +91,28 @@ sentence_scores = dict()
 for sentence in sentences:
     # turn sentence into list of stemmed words
     stemmed_sentence = [stemmer.stem(token, to_lowercase=True) for token in word_tokenize(sentence)]    
+    # score = 0
     for word, freq in frequencies.items():        
         if word in stemmed_sentence: # e.g. 'guy' will not return true for ['guys', ], which should be fine because stemmed?
             if sentence in sentence_scores:
                 sentence_scores[sentence] += freq
             else:
                 sentence_scores[sentence] = freq
+    if sentence in sentence_scores:
+        score = sentence_scores[sentence]
+        count = count_words(sentence)
+        #count = len(sentence.strip())
+        #print(sentence, str(score) , str(count))            
+        sentence_scores[sentence] = score + 2 * (score / count)
+        #print(sentence, sentence_scores[sentence], (len(sentence.split())), end='\n\n')            
 #for key, value in sorted(sentence_scores.items(), key=lambda item: item[1]):
 #    print(key, value) 
+#print(sentence_scores.items())
 
 n = 6
 # might throw an error if there happens to be the same sentence twice
 summary_sentences = [x[0] for x in sorted(sentence_scores.items(), reverse=True, key=lambda item: item[1])]
-summary = '\n============\n'.join(summary_sentences[:n])
+summary = '\n'.join(summary_sentences[:n])
 print(summary)
 
 
