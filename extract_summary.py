@@ -31,16 +31,39 @@ def prepare_text(text):
     # add period before linebreaks
     return re.sub(r'([a-zA-Z"):/])\n', r'\1.\n', text) # or maybe ([^.!?\n])(\n)
 
-def count_words(sentence):
-    # all words except stopwords
+def count_words(sentence, filter_stopwords=True):
     sentence = re.sub('[^a-zA-Z]', ' ', sentence)
     sentence_list = sentence.strip()
-    stopword_count = 0
-    for word in sentence_list:
-        if word.lower() in stopwords:
-            stopword_count += 1
+    if not filter_stopwords:
+        return len(sentence_list)
+    else:
+        stopword_count = 0
+        for word in sentence_list:
+            if word.lower() in stopwords:
+                stopword_count += 1
+        return len(sentence_list) - stopword_count
 
-    return len(sentence_list) - stopword_count
+def count_frequencies(cleaned_text):
+    """Returns dict for each word, except stopwords, and the normalized frequency.
+    """
+    frequencies = dict()
+    for word in word_tokenize(cleaned_text):
+        word = word.lower()    
+        if not word in stopwords:
+            word = stemmer.stem(word, to_lowercase=False)
+            if word in frequencies:
+                frequencies[word] += 1
+            else:
+                frequencies[word] = 1
+    #for key, value in sorted(frequencies.items(), key=lambda item: item[1]):
+    #    print(key, value)    
+    max_frequency = max(frequencies.values())     
+    for word in frequencies.keys():
+        frequencies[word] = frequencies[word] / max_frequency
+    #for key, value in sorted(frequencies.items(), key=lambda item: item[1]):
+    #    print(key, value)  
+    return frequencies  
+
 
 database = 'db/data.db'
 conn = create_connection(database)
@@ -66,24 +89,7 @@ text = prepare_text(text)
 stemmer = PorterStemmer()
 stopwords = set(stopwords.words("english"))
 
-# count word frequency
-frequencies = dict()
-for word in word_tokenize(cleaned_text):
-    word = word.lower()    
-    if not word in stopwords:
-        word = stemmer.stem(word, to_lowercase=False)
-        if word in frequencies:
-            frequencies[word] += 1
-        else:
-            frequencies[word] = 1
-#for key, value in sorted(frequencies.items(), key=lambda item: item[1]):
-#    print(key, value)    
-max_frequency = max(frequencies.values())     
-for word in frequencies.keys():
-    frequencies[word] = frequencies[word] / max_frequency
-#for key, value in sorted(frequencies.items(), key=lambda item: item[1]):
-#    print(key, value)    
-
+frequencies = count_frequencies(cleaned_text)
 
 # sentence scores
 sentences = sent_tokenize(text)
@@ -109,11 +115,9 @@ for sentence in sentences:
 #    print(key, value) 
 #print(sentence_scores.items())
 
-n = 6
+n = 3
 # might throw an error if there happens to be the same sentence twice
 summary_sentences = [x[0] for x in sorted(sentence_scores.items(), reverse=True, key=lambda item: item[1])]
 summary = '\n'.join(summary_sentences[:n])
-print(summary)
-
-
+#print(summary)
 
