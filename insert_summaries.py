@@ -50,7 +50,9 @@ model_records = [json.loads(a.strip("\n")) for a in model_file_lines]
 article_id = 0
 for record in model_records:
     raw = json.dumps(record)
+    #raw = record
     article_id += 1 # FK(article_id) REFERENCES api_article(id)
+    bert = record['bert_score']['fmeasure']
     compression = record['compression']
     factual_consistency = 0 # what is it?
     length = 0
@@ -83,10 +85,10 @@ for record in model_records:
         #     print(value)
         #     print('"' * 20)
 
-    cur.execute(sql_insert_summary, (raw, article_id, model_name, bert, compression,
-            factual_consistency, length, novelty, rouge1, rouge2, rougeL,
-            dataset_id, entity_factuality, bi_gram_abs, tri_gram_abs,
-            uni_gram_abs, four_gram_abs))
+    # cur.execute(sql_insert_summary, (raw, article_id, model_name, bert, compression,
+    #         factual_consistency, length, novelty, rouge1, rouge2, rougeL,
+    #         dataset_id, entity_factuality, bi_gram_abs, tri_gram_abs,
+    #         uni_gram_abs, four_gram_abs))
     #break # for testing
 
 
