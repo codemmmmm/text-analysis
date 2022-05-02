@@ -4,7 +4,7 @@ reddit scraper, simple text summarizer
 ## summarizer
 
 * for counting word frequency: 
-  * remove everything except except letters
+  * remove everything except letters
   * count frequency of words (tokenized, stemmed), except stopwords
   * normalize frequency values
   
