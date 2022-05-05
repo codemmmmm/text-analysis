@@ -42,15 +42,27 @@ sql_insert_summary = '''INSERT INTO api_summary (raw, article_id, smodel_id,
             (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
             %s);'''
 
+sum_length = 0
+sum_rouge1 = 0
+sum_rouge2 = 0
+sum_rougeL = 0
+sum_entities = 0
+sum_relations = 0
+sum_bi_gram_abs = 0
+sum_compression = 0
+sum_tri_gram_abs = 0
+sum_uni_gram_abs = 0
+sum_four_gram_abs = 0
+
 # read jsonl
 f = 'summary-explorer/text-processing/data/document-overlap-metrics/sumex.jsonl'
 model_file_lines = open(f, "r", encoding="utf-8").readlines()
 model_records = [json.loads(a.strip("\n")) for a in model_file_lines]
 #print(model_records[0].keys())
+count = len(model_records) # just use article_id as count?
 article_id = 0
 for record in model_records:
     raw = json.dumps(record)
-    #raw = record
     article_id += 1 # FK(article_id) REFERENCES api_article(id)
     bert = record['bert_score']['fmeasure']
     compression = record['compression']
@@ -85,13 +97,24 @@ for record in model_records:
         #     print(value)
         #     print('"' * 20)
 
+    sum_length += length
+    sum_rouge1 += rouge1
+    sum_rouge2 += rouge2
+    sum_rougeL += rougeL
+    sum_entities += entity_factuality # ?
+    #sum_relations += relat ??
+    sum_bi_gram_abs += bi_gram_abs
+    sum_compression += compression
+    sum_tri_gram_abs += tri_gram_abs
+    sum_uni_gram_abs += uni_gram_abs
+    sum_four_gram_abs +=four_gram_abs
     # cur.execute(sql_insert_summary, (raw, article_id, model_name, bert, compression,
     #         factual_consistency, length, novelty, rouge1, rouge2, rougeL,
     #         dataset_id, entity_factuality, bi_gram_abs, tri_gram_abs,
     #         uni_gram_abs, four_gram_abs))
     #break # for testing
 
-
+    avg_length = ...
 
 
 conn.commit()
